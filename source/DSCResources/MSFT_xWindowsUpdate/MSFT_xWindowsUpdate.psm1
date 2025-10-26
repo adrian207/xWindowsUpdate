@@ -180,7 +180,7 @@ function Test-TargetResource
 
 function Test-StandardArguments
 {
-    param
+            $script:retryDelay = $RetryDelay
     (
         [Parameter()]
         [System.String]

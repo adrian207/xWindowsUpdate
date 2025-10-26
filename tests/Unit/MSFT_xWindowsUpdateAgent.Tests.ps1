@@ -1851,6 +1851,75 @@ try
                 { Get-WuaAuNotificationLevelInt } | Should -Throw
             }
         }
+
+        Describe 'MSFT_xWindowsUpdateAgent\COM object caching' {
+            It 'Should cache Get-WuaSession instance across calls' {
+                # Ensure a fresh cache
+                Clear-WuaCache
+
+                $fakeSession = [PSCustomObject]@{}
+
+                # Intercept New-Object calls that create the COM session
+                Mock -CommandName New-Object -ParameterFilter { $ComObject -eq 'Microsoft.Update.Session' } -MockWith { return $fakeSession } -Verifiable
+
+                $a = Get-WuaSession
+                $b = Get-WuaSession
+
+                # New-Object should have been used only once
+                Assert-MockCalled -CommandName New-Object -Times 1 -ParameterFilter { $ComObject -eq 'Microsoft.Update.Session' }
+
+                $a | Should -Be $fakeSession
+                $b | Should -Be $fakeSession
+            }
+
+            It 'Should cache Get-WuaServiceManager instance across calls' {
+                Clear-WuaCache
+
+                $fakeServiceManager = [PSCustomObject]@{}
+
+                Mock -CommandName New-Object -ParameterFilter { $ComObject -eq 'Microsoft.Update.ServiceManager' } -MockWith { return $fakeServiceManager } -Verifiable
+
+                $a = Get-WuaServiceManager
+                $b = Get-WuaServiceManager
+
+                Assert-MockCalled -CommandName New-Object -Times 1 -ParameterFilter { $ComObject -eq 'Microsoft.Update.ServiceManager' }
+
+                $a | Should -Be $fakeServiceManager
+                $b | Should -Be $fakeServiceManager
+            }
+
+            It 'Should cache Get-WuaAu instance across calls' {
+                Clear-WuaCache
+
+                $fakeAu = [PSCustomObject]@{}
+
+                Mock -CommandName New-Object -ParameterFilter { $ComObject -eq 'Microsoft.Update.AutoUpdate' } -MockWith { return $fakeAu } -Verifiable
+
+                $a = Get-WuaAu
+                $b = Get-WuaAu
+
+                Assert-MockCalled -CommandName New-Object -Times 1 -ParameterFilter { $ComObject -eq 'Microsoft.Update.AutoUpdate' }
+
+                $a | Should -Be $fakeAu
+                $b | Should -Be $fakeAu
+            }
+
+            It 'Should cache Get-WuaSystemInfo instance across calls' {
+                Clear-WuaCache
+
+                $fakeSys = [PSCustomObject]@{}
+
+                Mock -CommandName New-Object -ParameterFilter { $ComObject -eq 'Microsoft.Update.SystemInfo' } -MockWith { return $fakeSys } -Verifiable
+
+                $a = Get-WuaSystemInfo
+                $b = Get-WuaSystemInfo
+
+                Assert-MockCalled -CommandName New-Object -Times 1 -ParameterFilter { $ComObject -eq 'Microsoft.Update.SystemInfo' }
+
+                $a | Should -Be $fakeSys
+                $b | Should -Be $fakeSys
+            }
+        }
     }
     #endregion
 }

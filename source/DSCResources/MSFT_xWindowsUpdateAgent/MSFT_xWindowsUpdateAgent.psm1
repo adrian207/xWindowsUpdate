@@ -10,9 +10,30 @@ $script:retryDelay = 0
 $script:lastHResult = 0
 $script:errorCount = 0
 
+# Module-level cached COM objects to reduce repeated COM instantiation overhead
+$script:WuaSession = $null
+$script:WuaServiceManager = $null
+$script:WuaAu = $null
+$script:WuaSystemInfo = $null
+
+function Clear-WuaCache
+{
+    # Internal helper to clear cached COM instances. Useful when COM errors
+    # occur or when tests need a fresh instance.
+    $script:WuaSession = $null
+    $script:WuaServiceManager = $null
+    $script:WuaAu = $null
+    $script:WuaSystemInfo = $null
+}
+
 function Get-WuaServiceManager
 {
-    return (New-Object -ComObject Microsoft.Update.ServiceManager)
+    if (-not $script:WuaServiceManager)
+    {
+        $script:WuaServiceManager = New-Object -ComObject 'Microsoft.Update.ServiceManager'
+    }
+
+    return $script:WuaServiceManager
 }
 
 function Add-WuaService
@@ -132,7 +153,12 @@ function Get-WuaSearchString
 
 function Get-WuaAu
 {
-    return (New-Object -ComObject 'Microsoft.Update.AutoUpdate')
+    if (-not $script:WuaAu)
+    {
+        $script:WuaAu = New-Object -ComObject 'Microsoft.Update.AutoUpdate'
+    }
+
+    return $script:WuaAu
 }
 
 function Get-WuaAuSettings
@@ -259,6 +285,9 @@ function Get-WuaWrapper
                     throw
                 }
             }
+
+            # Clear cached COM instances so subsequent attempts recreate them.
+            Clear-WuaCache
 
             if (-not (Assert-Retry $errorObj))
             {
@@ -411,7 +440,12 @@ function Get-WuaAuNotificationLevelInt
 
 function Get-WuaSystemInfo
 {
-    return (New-Object -ComObject 'Microsoft.Update.SystemInfo')
+    if (-not $script:WuaSystemInfo)
+    {
+        $script:WuaSystemInfo = New-Object -ComObject 'Microsoft.Update.SystemInfo'
+    }
+
+    return $script:WuaSystemInfo
 }
 
 function Get-WuaRebootRequired
@@ -429,7 +463,12 @@ function Get-WuaRebootRequired
 
 function Get-WuaSession
 {
-    return (New-Object -ComObject 'Microsoft.Update.Session')
+    if (-not $script:WuaSession)
+    {
+        $script:WuaSession = New-Object -ComObject 'Microsoft.Update.Session'
+    }
+
+    return $script:WuaSession
 }
 
 function Get-WuaSearcher
@@ -554,7 +593,7 @@ function Get-TargetResource
 
     if ($RetryDelay -ge 0)
     {
-        $script:retryDelay = $RetryAttempts
+        $script:retryDelay = $RetryDelay
     }
 
     Test-TargetResourceProperties @PSBoundParameters
